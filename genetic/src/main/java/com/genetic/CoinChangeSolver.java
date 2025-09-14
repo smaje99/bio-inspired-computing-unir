@@ -53,8 +53,8 @@ public class CoinChangeSolver {
 
     // Set up genetic operators
     conf.getGeneticOperators().clear();
-    conf.addGeneticOperator(new MutationOperator(conf, 12));
-    conf.addGeneticOperator(new CrossoverOperator(conf, 0.35));
+    conf.addGeneticOperator(new MutationOperator(conf, 12)); // 12% mutation rate
+    conf.addGeneticOperator(new CrossoverOperator(conf, 0.35)); // 35% crossover rate
 
     // Calculate dynamic limits based on target amount
     int[] maxCoins = calculateMaxCoinsPerType(amount);
@@ -133,7 +133,7 @@ public class CoinChangeSolver {
 
   /**
    * Creates an initial population with some promising solutions.
-   *   * @param conf   configuration
+   * @param conf   configuration
    * @param amount target amount in cents
    * @return initial population
    * @throws InvalidConfigurationException if configuration fails
