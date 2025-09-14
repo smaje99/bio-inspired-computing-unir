@@ -1,1 +1,4 @@
 .vscode/cspell.json
+
+genetic/target/
+genetic/target/classes/com/genetic/Main.class
