@@ -1,6 +1,7 @@
 package com.genetic;
 
 import org.jgap.FitnessFunction;
+import org.jgap.Genotype;
 import org.jgap.IChromosome;
 
 /**
@@ -11,8 +12,13 @@ import org.jgap.IChromosome;
  */
 public class CoinChangeFitness extends FitnessFunction {
   private final int targetAmount;
-  public static final int MAX_AMOUNT = 10000; // 10 dollars in cents
+  public static final int MAX_AMOUNT = 10000; // 100 dollars in cents
   public static final int MAX_COINS = MAX_AMOUNT;
+
+  // Weights to balance the objectives
+  private static final double AMOUNT_PENALTY_WEIGHT = 1000.0;
+  private static final double COIN_COUNT_WEIGHT = 1.0;
+  private static final double BASE_FITNESS = 10_000.0;
 
   /**
    * Creates a fitness function for a given target amount.
@@ -27,9 +33,11 @@ public class CoinChangeFitness extends FitnessFunction {
   }
 
   /**
-   * Evaluates a chromosome.
-   * A solution is better if it exactly matches the target amount and uses fewer
-   * coins.
+   * Evaluates a chromosome using a multi-objective fitness function.
+   *
+   * It considers:
+   * - How close is the amount to the target (heavy penalty)
+   * - Total number of coins (minor penalty to minimize)
    *
    * @param chromosome candidate solution
    * @return fitness value (higher is better)
@@ -38,21 +46,34 @@ public class CoinChangeFitness extends FitnessFunction {
   protected double evaluate(IChromosome chromosome) {
     int amount = calculateAmount(chromosome);
     int totalCoins = calculateTotalCoins(chromosome);
-    int difference = Math.abs(targetAmount - amount);
+    int amountDifference = Math.abs(targetAmount - amount);
 
-    // Penalize if solution does not match the target amount
-    if (difference != 0) {
-      return 0.0;
+    // High-level fitness
+    double fitness = BASE_FITNESS;
+
+    // Heavy penalty for quantity difference
+    // This guides towards the correct quantity
+    fitness -= amountDifference * AMOUNT_PENALTY_WEIGHT;
+
+    // If the amount is exact, penalice by number of coins
+    // This optimizes towards fewer coins
+    if (amountDifference == 0) {
+      fitness -= totalCoins * COIN_COUNT_WEIGHT;
     }
 
-    // Higher fitness for fewer coins
-    return Math.max(0, MAX_COINS - totalCoins);
+    // Additional penalty if the target amount is significantly exceeded
+    if (amount > targetAmount) {
+      fitness -= (amount - targetAmount) * AMOUNT_PENALTY_WEIGHT * 2;
+    }
+
+    // Ensure that fitness is non-negative
+    return Math.max(1d, fitness);
   }
 
   /**
    * Calculates the total amount represented by the chromosome.
    */
-  public static int calculateAmount(IChromosome chromosome) {
+  public static int calculateAmount(final IChromosome chromosome) {
     return getGene(chromosome, 0) * 100 + // $1
         getGene(chromosome, 1) * 50 + // 50¢
         getGene(chromosome, 2) * 25 + // 25¢
@@ -64,7 +85,7 @@ public class CoinChangeFitness extends FitnessFunction {
   /**
    * Calculates the total number of coins in the chromosome.
    */
-  public static int calculateTotalCoins(IChromosome chromosome) {
+  public static int calculateTotalCoins(final IChromosome chromosome) {
     int total = 0;
     for (int i = 0; i < chromosome.size(); i++) {
       total += getGene(chromosome, i);
@@ -75,7 +96,37 @@ public class CoinChangeFitness extends FitnessFunction {
   /**
    * Retrieves the integer value of a given gene.
    */
-  public static int getGene(IChromosome chromosome, int index) {
+  public static int getGene(final IChromosome chromosome, final int index) {
     return (Integer) chromosome.getGene(index).getAllele();
+  }
+
+  /**
+   * Calculates the average fitness of a population.
+   */
+  public static double calculateAverageFitness(final Genotype population) {
+    double totalFitness = 0.0;
+    for (Object chromosome : population.getPopulation().getChromosomes()) {
+      totalFitness += ((IChromosome) chromosome).getFitnessValue();
+    }
+    return totalFitness / population.getPopulation().size();
+  }
+
+  /**
+   * Retrieves the worst (minimum) fitness value in the population.
+   */
+  public static double calculateWorstFitness(final Genotype population) {
+    if (population.getPopulation().size() == 0) {
+      return 0.0;
+    }
+
+    double worstFitness = Double.MAX_VALUE;
+
+    for (Object chromosome : population.getPopulation().getChromosomes()) {
+      double fitness = ((IChromosome) chromosome).getFitnessValue();
+      if (fitness < worstFitness) {
+        worstFitness = fitness;
+      }
+    }
+    return worstFitness;
   }
 }
