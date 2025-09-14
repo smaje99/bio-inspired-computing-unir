@@ -30,7 +30,7 @@ public class CoinChangeGUI extends JFrame {
     topPanel.add(solveButton);
 
     // Result area
-    resultArea = new JTextArea(15, 40);
+    resultArea = new JTextArea(30, 40);
     resultArea.setEditable(false);
     JScrollPane scrollPane = new JScrollPane(resultArea);
 
